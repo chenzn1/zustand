@@ -88,6 +88,41 @@ it('uses the store with selectors', async () => {
   await findByText('count: 1')
 })
 
+it('uses the store with selectors and store equality checker', async () => {
+  const useBoundStore = create(
+    () => ({ item: { value: 0 } }),
+    // Prevent re-render if new value === 1.
+    (_, newItem) => newItem.value === 1
+  )
+  const { setState } = useBoundStore
+  let renderCount = 0
+
+  function Component() {
+    const item = useBoundStore((s) => s.item)
+    return (
+      <div>
+        renderCount: {++renderCount}, value: {item.value}
+      </div>
+    )
+  }
+
+  const { findByText } = render(
+    <>
+      <Component />
+    </>
+  )
+
+  await findByText('renderCount: 1, value: 0')
+
+  // This will not cause a re-render.
+  act(() => setState({ item: { value: 1 } }))
+  await findByText('renderCount: 1, value: 0')
+
+  // This will cause a re-render.
+  act(() => setState({ item: { value: 2 } }))
+  await findByText('renderCount: 2, value: 2')
+})
+
 it('uses the store with a selector and equality checker', async () => {
   const useBoundStore = create(() => ({ item: { value: 0 } }))
   const { setState } = useBoundStore

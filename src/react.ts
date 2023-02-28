@@ -56,10 +56,12 @@ export type UseBoundStore<S extends WithReact<StoreApi<unknown>>> = {
 
 type Create = {
   <T, Mos extends [StoreMutatorIdentifier, unknown][] = []>(
-    initializer: StateCreator<T, [], Mos>
+    initializer: StateCreator<T, [], Mos>,
+    equalityFn?: (a: any, b: any) => boolean
   ): UseBoundStore<Mutate<StoreApi<T>, Mos>>
   <T>(): <Mos extends [StoreMutatorIdentifier, unknown][] = []>(
-    initializer: StateCreator<T, [], Mos>
+    initializer: StateCreator<T, [], Mos>,
+    equalityFn?: (a: any, b: any) => boolean
   ) => UseBoundStore<Mutate<StoreApi<T>, Mos>>
   /**
    * @deprecated Use `useStore` hook to bind store
@@ -67,7 +69,10 @@ type Create = {
   <S extends StoreApi<unknown>>(store: S): UseBoundStore<S>
 }
 
-const createImpl = <T>(createState: StateCreator<T, [], []>) => {
+const createImpl = <T>(
+  createState: StateCreator<T, [], []>,
+  storeEqualityFn?: any
+) => {
   if (
     import.meta.env?.MODE !== 'production' &&
     typeof createState !== 'function'
@@ -80,15 +85,17 @@ const createImpl = <T>(createState: StateCreator<T, [], []>) => {
     typeof createState === 'function' ? createStore(createState) : createState
 
   const useBoundStore: any = (selector?: any, equalityFn?: any) =>
-    useStore(api, selector, equalityFn)
+    useStore(api, selector, equalityFn || storeEqualityFn)
 
   Object.assign(useBoundStore, api)
 
   return useBoundStore
 }
 
-export const create = (<T>(createState: StateCreator<T, [], []> | undefined) =>
-  createState ? createImpl(createState) : createImpl) as Create
+export const create = (<T>(
+  createState: StateCreator<T, [], []> | undefined,
+  equalityFn?: (a: any, b: any) => boolean
+) => (createState ? createImpl(createState, equalityFn) : createImpl)) as Create
 
 /**
  * @deprecated Use `import { create } from 'zustand'`
